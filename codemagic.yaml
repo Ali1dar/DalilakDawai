@@ -1,0 +1,26 @@
+Enterworkflows:
+  react-native-android:
+    name: React Native Android Workflow
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    environment:
+      node: latest
+    scripts:
+      - name: Unzip full project
+        script: |
+          # فك ضغط المشروع كاملاً في البيئة السحابية
+          unzip -o *.zip
+          
+          # إذا كانت الملفات مستخرجة داخل مجلد فرعي بنفس الاسم، سننقلها للمسار الرئيسي
+          if [ -d "DalilakDawai" ]; then
+            mv DalilakDawai/* .
+            mv DalilakDawai/.* . 2>/dev/null || true
+          fi
+      - name: Install dependencies
+        script: |
+          npm install
+      - name: Build Android APK
+        script: |
+          cd android && ./gradlew assembleDebug --no-daemon
+    artifacts:
+      - android/app/build/outputs/apk/debug/*.apk
