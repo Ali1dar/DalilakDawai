@@ -9,7 +9,6 @@ workflows:
       - name: Unzip full project
         script: |
           unzip -o *.zip
-          # العثور على المجلد الرئيسي للمشروع ونقل الملفات للـ Root
           Root_Dir=$(find . -name "package.json" -not -path "*/node_modules/*" -exec dirname {} \; | head -n 1)
           if [ -n "$Root_Dir" ] && [ "$Root_Dir" != "." ]; then
             mv "$Root_Dir"/* . 2>/dev/null || true
@@ -20,7 +19,6 @@ workflows:
           npm install
       - name: Build Android APK
         script: |
-          # البحث عن مجلد android الفعلي
           Android_Dir=$(find . -name "build.gradle" -not -path "*/node_modules/*" -exec dirname {} \; | grep -v "/app" | head -n 1)
           if [ -z "$Android_Dir" ]; then
             Android_Dir="./android"
@@ -28,13 +26,17 @@ workflows:
           
           cd "$Android_Dir"
           
-          # خدعة سحرية: إذا كان ملف gradlew مفقوداً، سنقوم بتوليده وإعطائه الصلاحيات فوراً
+          # توليد وإصلاح ملف الخصائص وضخ الإصدارات المفقودة لتخطي خطأ الـ Could not find
+          echo "Fixing gradle.properties..."
+          echo "newArchEnabled=false" > gradle.properties
+          echo "HERMES_ENABLED=true" >> gradle.properties
+          
           if [ ! -f "gradlew" ]; then
-            echo "gradlew not found, generating wrapper..."
             gradle wrapper --gradle-version 8.6
           fi
           
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          # تشغيل البناء مع تمرير الإصدارات الأساسية مباشرة لتفادي فقدانها
+          ./gradlew assembleDebug -Pandroid.useAndroidX=true -Pandroid.enableJetifier=true --no-daemon
     artifacts:
       - "**/build/outputs/apk/debug/*.apk"
