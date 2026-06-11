@@ -9,10 +9,9 @@ workflows:
       - name: Unzip full project
         script: |
           unzip -o *.zip
-          # البحث عن المجلد الفعلي الذي يحتوي على ملف package.json والانتقال إليه
+          # العثور على المجلد الرئيسي للمشروع ونقل الملفات للـ Root
           Root_Dir=$(find . -name "package.json" -not -path "*/node_modules/*" -exec dirname {} \; | head -n 1)
           if [ -n "$Root_Dir" ] && [ "$Root_Dir" != "." ]; then
-            echo "Moving files from $Root_Dir to root"
             mv "$Root_Dir"/* . 2>/dev/null || true
             mv "$Root_Dir"/.* . 2>/dev/null || true
           fi
@@ -21,15 +20,21 @@ workflows:
           npm install
       - name: Build Android APK
         script: |
-          # البحث الديناميكي عن مجلد android والدخول إليه للبناء
-          Android_Dir=$(find . -name "gradlew" -not -path "*/node_modules/*" -exec dirname {} \; | head -n 1)
-          if [ -n "$Android_Dir" ]; then
-            cd "$Android_Dir"
-            chmod +x gradlew
-            ./gradlew assembleDebug --no-daemon
-          else
-            echo "Error: gradlew not found!"
-            exit 1
+          # البحث عن مجلد android الفعلي
+          Android_Dir=$(find . -name "build.gradle" -not -path "*/node_modules/*" -exec dirname {} \; | grep -v "/app" | head -n 1)
+          if [ -z "$Android_Dir" ]; then
+            Android_Dir="./android"
           fi
+          
+          cd "$Android_Dir"
+          
+          # خدعة سحرية: إذا كان ملف gradlew مفقوداً، سنقوم بتوليده وإعطائه الصلاحيات فوراً
+          if [ ! -f "gradlew" ]; then
+            echo "gradlew not found, generating wrapper..."
+            gradle wrapper --gradle-version 8.6
+          fi
+          
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
     artifacts:
       - "**/build/outputs/apk/debug/*.apk"
