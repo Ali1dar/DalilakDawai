@@ -1,4 +1,4 @@
-Enterworkflows:
+workflows:
   react-native-android:
     name: React Native Android Workflow
     max_build_duration: 60
@@ -8,14 +8,8 @@ Enterworkflows:
     scripts:
       - name: Unzip full project
         script: |
-          # فك ضغط المشروع كاملاً في البيئة السحابية
           unzip -o *.zip
-          
-          # إذا كانت الملفات مستخرجة داخل مجلد فرعي بنفس الاسم، سننقلها للمسار الرئيسي
-          if [ -d "DalilakDawai" ]; then
-            mv DalilakDawai/* .
-            mv DalilakDawai/.* . 2>/dev/null || true
-          fi
+          if [ -d "DalilakDawai" ]; then mv DalilakDawai/* . && mv DalilakDawai/.* . 2>/dev/null || true; Sub_Dir=$(find . -maxdepth 2 -name "android" -type d | head -n 1 | cut -d'/' -f2); if [ -n "$Sub_Dir" ] && [ "$Sub_Dir" != "android" ]; then mv "$Sub_Dir"/* . 2>/dev/null || true; fi; fi
       - name: Install dependencies
         script: |
           npm install
