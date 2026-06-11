@@ -26,17 +26,23 @@ workflows:
           
           cd "$Android_Dir"
           
-          # توليد وإصلاح ملف الخصائص وضخ الإصدارات المفقودة لتخطي خطأ الـ Could not find
-          echo "Fixing gradle.properties..."
-          echo "newArchEnabled=false" > gradle.properties
-          echo "HERMES_ENABLED=true" >> gradle.properties
-          
-          if [ ! -f "gradlew" ]; then
-            gradle wrapper --gradle-version 8.6
+          # حقن الإصدارات المستقرة مباشرة داخل ملفات gradle لتعويض أي نقص في الـ zip
+          echo "Injecting clean configurations..."
+          if [ -f "build.gradle" ]; then
+            sed -i '' 's/com.android.tools.build:gradle:.*/com.android.tools.build:gradle:8.2.1/g' build.gradle 2>/dev/null || sed -i 's/com.android.tools.build:gradle:.*/com.android.tools.build:gradle:8.2.1/g' build.gradle
+            sed -i '' 's/com.facebook.react:react-native-gradle-plugin:.*/com.facebook.react:react-native-gradle-plugin:0.73.4/g' build.gradle 2>/dev/null || sed -i 's/com.facebook.react:react-native-gradle-plugin:.*/com.facebook.react:react-native-gradle-plugin:0.73.4/g' build.gradle
           fi
           
+          # تهيئة ملف الخصائص الأساسي
+          echo "newArchEnabled=false" > gradle.properties
+          echo "HERMES_ENABLED=true" >> gradle.properties
+          echo "android.useAndroidX=true" >> gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
+          
+          # توليد الـ Wrapper بإصدار مستقر متوافق
+          gradle wrapper --gradle-version 8.4
+          
           chmod +x gradlew
-          # تشغيل البناء مع تمرير الإصدارات الأساسية مباشرة لتفادي فقدانها
-          ./gradlew assembleDebug -Pandroid.useAndroidX=true -Pandroid.enableJetifier=true --no-daemon
+          ./gradlew assembleDebug --no-daemon
     artifacts:
       - "**/build/outputs/apk/debug/*.apk"
